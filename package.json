@@ -1,0 +1,56 @@
+{
+  "name": "@daanrongen/lightpanda-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Lightpanda — navigate pages, extract content, click elements, fill forms, take screenshots, and evaluate JavaScript over stdio",
+  "type": "module",
+  "bin": {
+    "lightpanda-mcp": "./dist/main.js"
+  },
+  "main": "./dist/main.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "inspect": "DANGEROUSLY_OMIT_AUTH=true mcp-inspector bun src/main.ts",
+    "build": "bun build src/main.ts --outfile dist/main.js --target bun",
+    "typecheck": "tsc -p tsconfig.check.json",
+    "test": "bun test",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "release:patch": "npm version patch",
+    "release:minor": "npm version minor",
+    "release:major": "npm version major",
+    "postversion": "git push --follow-tags"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daanrongen/lightpanda-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "lightpanda",
+    "headless-browser",
+    "model-context-protocol",
+    "effect"
+  ],
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "effect": "^3.21.0",
+    "puppeteer-core": "^22.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.12",
+    "bun-types": "latest",
+    "lefthook": "^2.1.5",
+    "typescript": "^5.8.3"
+  }
+}
