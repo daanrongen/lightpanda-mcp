@@ -37,6 +37,8 @@ export const LightpandaClientTest = Layer.effect(
 
       getHtml: (_selector) => Effect.succeed({ html: "<body>mock html</body>" }),
 
+      waitForSelector: (_selector, _timeout) => Effect.void,
+
       click: (_selector) => Effect.void,
 
       fill: (_selector, _value) => Effect.void,

@@ -93,6 +93,31 @@ export const registerBrowseTools = (
   );
 
   server.tool(
+    "wait_for_selector",
+    "Wait for a CSS selector to appear in the DOM before continuing. Use after click or fill when the page loads content dynamically.",
+    {
+      selector: z.string().describe("CSS selector to wait for"),
+      timeout: z.number().optional().describe("Max wait time in milliseconds (default: 5000)"),
+    },
+    {
+      title: "Wait for Selector",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    async ({ selector, timeout }) =>
+      runTool(
+        runtime,
+        Effect.gen(function* () {
+          const client = yield* LightpandaClient;
+          yield* client.waitForSelector(selector, timeout);
+        }),
+        () => formatSuccess({ ok: true }),
+      ),
+  );
+
+  server.tool(
     "click",
     "Click an element on the current page by CSS selector.",
     {
