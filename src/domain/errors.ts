@@ -19,3 +19,7 @@ export class EvalError extends Data.TaggedError("EvalError")<{
 export class ConnectionLostError extends Data.TaggedError("ConnectionLostError")<{
   readonly message: string;
 }> {}
+
+export class ScreenshotNotSupportedError extends Data.TaggedError("ScreenshotNotSupportedError")<{
+  readonly message: string;
+}> {}
