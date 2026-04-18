@@ -12,6 +12,16 @@ const wrapPuppeteer = <A>(label: string, fn: () => Promise<A>): Effect.Effect<A,
     catch: (e) => new LightpandaError({ message: `${label} failed`, cause: e }),
   });
 
+const requireNavigated = (page: Page): Effect.Effect<void, LightpandaError> =>
+  page.url() === "about:blank"
+    ? Effect.fail(
+        new LightpandaError({
+          message:
+            "No page loaded — call navigate first before using get_content, get_html, click, fill, screenshot, evaluate, or wait_for_selector.",
+        }),
+      )
+    : Effect.void;
+
 const MAX_TEXT_CHARS = 8000;
 const MAX_LINKS = 50;
 
@@ -65,46 +75,67 @@ export const LightpandaClientLive = Layer.scoped(
         }),
 
       getContent: (selector?: string) =>
-        wrapPuppeteer("getContent", () => extractPageContent(page, selector)),
+        Effect.gen(function* () {
+          yield* requireNavigated(page);
+          return yield* wrapPuppeteer("getContent", () => extractPageContent(page, selector));
+        }),
 
       getHtml: (selector?: string) =>
-        wrapPuppeteer("getHtml", async () => {
-          const html = await page.evaluate((sel) => {
-            const el = sel ? document.querySelector(sel) : document.body;
-            return (el as HTMLElement)?.outerHTML?.slice(0, 20000) ?? "";
-          }, selector ?? null);
-          return { html };
+        Effect.gen(function* () {
+          yield* requireNavigated(page);
+          return yield* wrapPuppeteer("getHtml", async () => {
+            const html = await page.evaluate((sel) => {
+              const el = sel ? document.querySelector(sel) : document.body;
+              return (el as HTMLElement)?.outerHTML?.slice(0, 20000) ?? "";
+            }, selector ?? null);
+            return { html };
+          });
         }),
 
       waitForSelector: (selector: string, timeout?: number) =>
-        wrapPuppeteer(`waitForSelector selector=${selector}`, async () => {
-          await page.waitForSelector(selector, { timeout: timeout ?? 5000 });
+        Effect.gen(function* () {
+          yield* requireNavigated(page);
+          yield* wrapPuppeteer(`waitForSelector selector=${selector}`, async () => {
+            await page.waitForSelector(selector, { timeout: timeout ?? 5000 });
+          });
         }),
 
       click: (selector: string) =>
-        wrapPuppeteer(`click selector=${selector}`, async () => {
-          await page.click(selector);
+        Effect.gen(function* () {
+          yield* requireNavigated(page);
+          yield* wrapPuppeteer(`click selector=${selector}`, async () => {
+            await page.click(selector);
+          });
         }),
 
       fill: (selector: string, value: string) =>
-        wrapPuppeteer(`fill selector=${selector}`, async () => {
-          await page.click(selector, { clickCount: 3 });
-          await page.type(selector, value);
+        Effect.gen(function* () {
+          yield* requireNavigated(page);
+          yield* wrapPuppeteer(`fill selector=${selector}`, async () => {
+            await page.click(selector, { clickCount: 3 });
+            await page.type(selector, value);
+          });
         }),
 
       screenshot: () =>
-        wrapPuppeteer("screenshot", async () => {
-          const buf = await page.screenshot({ encoding: "base64" });
-          return typeof buf === "string" ? buf : Buffer.from(buf).toString("base64");
+        Effect.gen(function* () {
+          yield* requireNavigated(page);
+          return yield* wrapPuppeteer("screenshot", async () => {
+            const buf = await page.screenshot({ encoding: "base64" });
+            return typeof buf === "string" ? buf : Buffer.from(buf).toString("base64");
+          });
         }),
 
       evaluate: (expression: string) =>
-        Effect.tryPromise({
-          try: async () => {
-            const result = await page.evaluate(expression);
-            return JSON.stringify(result);
-          },
-          catch: (e) => new EvalError({ expression, cause: e }),
+        Effect.gen(function* () {
+          yield* requireNavigated(page);
+          return yield* Effect.tryPromise({
+            try: async () => {
+              const result = await page.evaluate(expression);
+              return JSON.stringify(result);
+            },
+            catch: (e) => new EvalError({ expression, cause: e }),
+          });
         }),
     };
   }),
