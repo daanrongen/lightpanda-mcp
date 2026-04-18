@@ -67,6 +67,15 @@ export const LightpandaClientLive = Layer.scoped(
       getContent: (selector?: string) =>
         wrapPuppeteer("getContent", () => extractPageContent(page, selector)),
 
+      getHtml: (selector?: string) =>
+        wrapPuppeteer("getHtml", async () => {
+          const html = await page.evaluate((sel) => {
+            const el = sel ? document.querySelector(sel) : document.body;
+            return (el as HTMLElement)?.outerHTML?.slice(0, 20000) ?? "";
+          }, selector ?? null);
+          return { html };
+        }),
+
       click: (selector: string) =>
         wrapPuppeteer(`click selector=${selector}`, async () => {
           await page.click(selector);

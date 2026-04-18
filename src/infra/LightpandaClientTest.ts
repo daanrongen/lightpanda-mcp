@@ -35,6 +35,8 @@ export const LightpandaClientTest = Layer.effect(
 
       getContent: (_selector) => Ref.get(currentPageRef),
 
+      getHtml: (_selector) => Effect.succeed({ html: "<body>mock html</body>" }),
+
       click: (_selector) => Effect.void,
 
       fill: (_selector, _value) => Effect.void,
