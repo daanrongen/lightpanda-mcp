@@ -1,6 +1,6 @@
 {
   "name": "@daanrongen/lightpanda-mcp",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "MCP server for Lightpanda — navigate pages, extract content, click elements, fill forms, take screenshots, and evaluate JavaScript over stdio",
   "type": "module",
   "bin": {
