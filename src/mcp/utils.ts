@@ -12,6 +12,16 @@ export const formatSuccess = (data: unknown) => ({
   ],
 });
 
+export const formatImage = (data: string, mimeType: string) => ({
+  content: [
+    {
+      type: "image" as const,
+      data,
+      mimeType,
+    },
+  ],
+});
+
 export const formatError = (cause: Cause.Cause<unknown>) => ({
   content: [
     {
@@ -22,10 +32,12 @@ export const formatError = (cause: Cause.Cause<unknown>) => ({
   isError: true as const,
 });
 
+type ToolContent = ReturnType<typeof formatSuccess> | ReturnType<typeof formatImage>;
+
 export const runTool = async <A, E>(
   runtime: ManagedRuntime.ManagedRuntime<LightpandaClient, LightpandaError>,
   effect: Effect.Effect<A, E, LightpandaClient>,
-  toContent: (value: A) => ReturnType<typeof formatSuccess>,
+  toContent: (value: A) => ToolContent,
 ) => {
   const result = await runtime.runPromiseExit(effect);
   if (result._tag === "Failure") return formatError(result.cause);
