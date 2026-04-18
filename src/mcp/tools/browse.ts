@@ -22,9 +22,9 @@ export const registerBrowseTools = (
     },
     {
       title: "Navigate to URL",
-      readOnlyHint: true,
+      readOnlyHint: false,
       destructiveHint: false,
-      idempotentHint: true,
+      idempotentHint: false,
       openWorldHint: true,
     },
     async ({ url, waitUntil }) =>
