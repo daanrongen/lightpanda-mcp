@@ -15,3 +15,7 @@ export class EvalError extends Data.TaggedError("EvalError")<{
   readonly expression: string;
   readonly cause?: unknown;
 }> {}
+
+export class ConnectionLostError extends Data.TaggedError("ConnectionLostError")<{
+  readonly message: string;
+}> {}
