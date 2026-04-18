@@ -10,6 +10,10 @@ export interface LightpandaClientService {
   ) => Effect.Effect<PageContent, LightpandaError | NavigationError>;
   readonly getContent: (selector?: string) => Effect.Effect<PageContent, LightpandaError>;
   readonly getHtml: (selector?: string) => Effect.Effect<{ html: string }, LightpandaError>;
+  readonly waitForSelector: (
+    selector: string,
+    timeout?: number,
+  ) => Effect.Effect<void, LightpandaError>;
   readonly click: (selector: string) => Effect.Effect<void, LightpandaError>;
   readonly fill: (selector: string, value: string) => Effect.Effect<void, LightpandaError>;
   readonly screenshot: () => Effect.Effect<string, LightpandaError>;

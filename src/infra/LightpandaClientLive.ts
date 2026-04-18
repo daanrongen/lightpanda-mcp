@@ -76,6 +76,11 @@ export const LightpandaClientLive = Layer.scoped(
           return { html };
         }),
 
+      waitForSelector: (selector: string, timeout?: number) =>
+        wrapPuppeteer(`waitForSelector selector=${selector}`, async () => {
+          await page.waitForSelector(selector, { timeout: timeout ?? 5000 });
+        }),
+
       click: (selector: string) =>
         wrapPuppeteer(`click selector=${selector}`, async () => {
           await page.click(selector);
