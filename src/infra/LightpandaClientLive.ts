@@ -7,6 +7,7 @@ import {
   EvalError,
   LightpandaError,
   NavigationError,
+  ScreenshotNotSupportedError,
 } from "../domain/errors.ts";
 // biome-ignore-end lint/suspicious/noShadowRestrictedNames: end
 import { LightpandaClient } from "../domain/LightpandaClient.ts";
@@ -153,14 +154,21 @@ export const LightpandaClientLive = Layer.scoped(
           });
         }),
 
-      screenshot: () =>
+      screenshot: (): Effect.Effect<
+        string,
+        LightpandaError | ConnectionLostError | ScreenshotNotSupportedError
+      > =>
         Effect.gen(function* () {
           yield* requireConnected(connectedRef);
           yield* requireNavigated(page);
-          return yield* wrapPuppeteer("screenshot", async () => {
-            const buf = await page.screenshot({ encoding: "base64" });
-            return typeof buf === "string" ? buf : Buffer.from(buf).toString("base64");
-          });
+          // Page.captureScreenshot is not implemented in Lightpanda.
+          // See: https://github.com/lightpanda-io/browser/issues/492
+          return yield* Effect.fail(
+            new ScreenshotNotSupportedError({
+              message:
+                "Screenshots are not supported by Lightpanda. The CDP Page.captureScreenshot command has not been implemented yet. Track progress at https://github.com/lightpanda-io/browser/issues/492",
+            }),
+          );
         }),
 
       evaluate: (expression: string) =>

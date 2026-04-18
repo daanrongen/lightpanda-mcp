@@ -168,7 +168,7 @@ export const registerBrowseTools = (
 
   server.tool(
     "screenshot",
-    "Capture a screenshot of the current page. Returns a base64-encoded PNG string.",
+    "Capture a screenshot of the current page. NOTE: This tool is not supported by Lightpanda — CDP Page.captureScreenshot is not yet implemented. Calling it will return a ScreenshotNotSupportedError.",
     {},
     {
       title: "Take Screenshot",

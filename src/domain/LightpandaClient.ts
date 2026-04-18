@@ -1,6 +1,13 @@
 import { Context, type Effect } from "effect";
-// biome-ignore lint/suspicious/noShadowRestrictedNames: EvalError is the correct domain name for this error type
-import type { ConnectionLostError, EvalError, LightpandaError, NavigationError } from "./errors.ts";
+// biome-ignore-start lint/suspicious/noShadowRestrictedNames: EvalError is the correct domain name for this error type
+import type {
+  ConnectionLostError,
+  EvalError,
+  LightpandaError,
+  NavigationError,
+  ScreenshotNotSupportedError,
+} from "./errors.ts";
+// biome-ignore-end lint/suspicious/noShadowRestrictedNames: end
 import type { PageContent } from "./models.ts";
 
 export interface LightpandaClientService {
@@ -23,7 +30,10 @@ export interface LightpandaClientService {
     selector: string,
     value: string,
   ) => Effect.Effect<void, LightpandaError | ConnectionLostError>;
-  readonly screenshot: () => Effect.Effect<string, LightpandaError | ConnectionLostError>;
+  readonly screenshot: () => Effect.Effect<
+    string,
+    LightpandaError | ConnectionLostError | ScreenshotNotSupportedError
+  >;
   readonly evaluate: (
     expression: string,
   ) => Effect.Effect<string, LightpandaError | EvalError | ConnectionLostError>;
