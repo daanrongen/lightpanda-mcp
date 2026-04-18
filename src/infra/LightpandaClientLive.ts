@@ -12,10 +12,13 @@ const wrapPuppeteer = <A>(label: string, fn: () => Promise<A>): Effect.Effect<A,
     catch: (e) => new LightpandaError({ message: `${label} failed`, cause: e }),
   });
 
+const MAX_TEXT_CHARS = 8000;
+const MAX_LINKS = 50;
+
 const extractPageContent = async (page: Page, selector?: string): Promise<PageContent> => {
   const url = page.url();
   const title = await page.title();
-  const { text, links } = await page.evaluate((sel) => {
+  const { rawText, rawLinks } = await page.evaluate((sel) => {
     const root = sel ? document.querySelector(sel) : document.body;
     const el = root ?? document.body;
     const rawText = (el as HTMLElement).innerText ?? "";
@@ -23,13 +26,16 @@ const extractPageContent = async (page: Page, selector?: string): Promise<PageCo
       text: (a as HTMLAnchorElement).innerText.trim().slice(0, 200),
       href: (a as HTMLAnchorElement).href,
     }));
-    return { text: rawText.slice(0, 8000), links: rawLinks.slice(0, 50) };
+    return { rawText, rawLinks };
   }, selector ?? null);
+  const textTruncated = rawText.length > MAX_TEXT_CHARS;
+  const linksTruncated = rawLinks.length > MAX_LINKS;
   return new PageContent({
     url,
     title,
-    text,
-    links: links.map((l) => new Link(l)),
+    text: rawText.slice(0, MAX_TEXT_CHARS),
+    links: rawLinks.slice(0, MAX_LINKS).map((l) => new Link(l)),
+    truncated: textTruncated || linksTruncated,
   });
 };
 
