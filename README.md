@@ -18,7 +18,7 @@ bunx @daanrongen/lightpanda-mcp
 
 | Variable          | Required | Description                                                    |
 | ----------------- | -------- | -------------------------------------------------------------- |
-| `LIGHTPANDA_URL`  | Yes      | Lightpanda CDP WebSocket URL (e.g. `ws://raspberrypi:9222`)    |
+| `LIGHTPANDA_URL`  | Yes      | Lightpanda CDP WebSocket URL (e.g. `ws://localhost:9222`)      |
 
 ## Setup
 
@@ -34,7 +34,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "command": "bunx",
       "args": ["@daanrongen/lightpanda-mcp"],
       "env": {
-        "LIGHTPANDA_URL": "ws://raspberrypi:9222"
+        "LIGHTPANDA_URL": "ws://localhost:9222"
       }
     }
   }
@@ -44,7 +44,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ### Claude Code CLI
 
 ```bash
-claude mcp add lightpanda -e LIGHTPANDA_URL=ws://raspberrypi:9222 -- bunx @daanrongen/lightpanda-mcp
+claude mcp add lightpanda -e LIGHTPANDA_URL=ws://localhost:9222 -- bunx @daanrongen/lightpanda-mcp
 ```
 
 ## Development
