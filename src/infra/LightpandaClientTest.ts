@@ -15,6 +15,7 @@ export const LightpandaClientTest = Layer.effect(
         title: "",
         text: "",
         links: [],
+        truncated: false,
       }),
     );
 
@@ -26,6 +27,7 @@ export const LightpandaClientTest = Layer.effect(
             title: `Test page — ${url}`,
             text: `This is mock content for ${url}`,
             links: [new Link({ text: "Example", href: "https://example.com" })],
+            truncated: false,
           });
           yield* Ref.set(currentPageRef, page);
           return page;

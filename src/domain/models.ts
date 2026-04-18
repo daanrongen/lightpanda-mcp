@@ -10,4 +10,5 @@ export class PageContent extends Schema.Class<PageContent>("PageContent")({
   title: Schema.String,
   text: Schema.String,
   links: Schema.Array(Link),
+  truncated: Schema.Boolean,
 }) {}
