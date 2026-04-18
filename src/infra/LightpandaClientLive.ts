@@ -38,7 +38,7 @@ const requireConnected = (
       yield* Effect.fail(
         new ConnectionLostError({
           message:
-            "CDP connection to Lightpanda has been lost. Check that the Lightpanda server is running and restart the MCP server.",
+            "CDP connection to Lightpanda has been lost and could not be re-established. Check that the Lightpanda server is running and restart the MCP server.",
         }),
       );
     }
@@ -46,6 +46,8 @@ const requireConnected = (
 
 const MAX_TEXT_CHARS = 8000;
 const MAX_LINKS = 50;
+const RECONNECT_ATTEMPTS = 5;
+const RECONNECT_BASE_DELAY_MS = 500;
 
 const extractPageContent = async (page: Page, selector?: string): Promise<PageContent> => {
   const url = page.url();
@@ -71,6 +73,54 @@ const extractPageContent = async (page: Page, selector?: string): Promise<PageCo
   });
 };
 
+const connectBrowser = (wsEndpoint: string): Promise<Browser> =>
+  puppeteer.connect({ browserWSEndpoint: wsEndpoint });
+
+const scheduleReconnect = (
+  wsEndpoint: string,
+  browserRef: Ref.Ref<Browser>,
+  pageRef: Ref.Ref<Page>,
+  connectedRef: Ref.Ref<boolean>,
+  attempt: number,
+): void => {
+  if (attempt > RECONNECT_ATTEMPTS) {
+    process.stderr.write(
+      `[lightpanda-mcp] Reconnect failed after ${RECONNECT_ATTEMPTS} attempts — giving up. Restart the MCP server.\n`,
+    );
+    Effect.runSync(Ref.set(connectedRef, false));
+    return;
+  }
+
+  const delayMs = RECONNECT_BASE_DELAY_MS * 2 ** (attempt - 1);
+  process.stderr.write(
+    `[lightpanda-mcp] CDP disconnected — reconnect attempt ${attempt}/${RECONNECT_ATTEMPTS} in ${delayMs}ms…\n`,
+  );
+
+  setTimeout(async () => {
+    try {
+      const newBrowser = await connectBrowser(wsEndpoint);
+      const newPage = await newBrowser.newPage();
+
+      // Register the disconnected handler on the new browser
+      newBrowser.on("disconnected", () => {
+        scheduleReconnect(wsEndpoint, browserRef, pageRef, connectedRef, 1);
+      });
+
+      Effect.runSync(
+        Effect.gen(function* () {
+          yield* Ref.set(browserRef, newBrowser);
+          yield* Ref.set(pageRef, newPage);
+          yield* Ref.set(connectedRef, true);
+        }),
+      );
+
+      process.stderr.write("[lightpanda-mcp] CDP reconnected successfully.\n");
+    } catch (_err) {
+      scheduleReconnect(wsEndpoint, browserRef, pageRef, connectedRef, attempt + 1);
+    }
+  }, delayMs);
+};
+
 export const LightpandaClientLive = Layer.scoped(
   LightpandaClient,
   Effect.gen(function* () {
@@ -78,19 +128,19 @@ export const LightpandaClientLive = Layer.scoped(
 
     const connectedRef = yield* Ref.make(true);
 
-    const browser: Browser = yield* Effect.acquireRelease(
-      wrapPuppeteer("connect", () => puppeteer.connect({ browserWSEndpoint: wsEndpoint })),
+    const initialBrowser: Browser = yield* Effect.acquireRelease(
+      wrapPuppeteer("connect", () => connectBrowser(wsEndpoint)),
       (b) => Effect.promise(() => b.disconnect()),
     );
 
-    browser.on("disconnected", () => {
-      process.stderr.write(
-        "[lightpanda-mcp] CDP connection lost — restart the MCP server once Lightpanda is back up.\n",
-      );
-      Effect.runSync(Ref.set(connectedRef, false));
-    });
+    const initialPage: Page = yield* wrapPuppeteer("newPage", () => initialBrowser.newPage());
 
-    const page: Page = yield* wrapPuppeteer("newPage", () => browser.newPage());
+    const browserRef = yield* Ref.make<Browser>(initialBrowser);
+    const pageRef = yield* Ref.make<Page>(initialPage);
+
+    initialBrowser.on("disconnected", () => {
+      scheduleReconnect(wsEndpoint, browserRef, pageRef, connectedRef, 1);
+    });
 
     return {
       navigate: (
@@ -99,6 +149,7 @@ export const LightpandaClientLive = Layer.scoped(
       ) =>
         Effect.gen(function* () {
           yield* requireConnected(connectedRef);
+          const page = yield* Ref.get(pageRef);
           yield* Effect.tryPromise({
             try: () => page.goto(url, { waitUntil }),
             catch: (e) => new NavigationError({ url, cause: e }),
@@ -109,6 +160,7 @@ export const LightpandaClientLive = Layer.scoped(
       getContent: (selector?: string) =>
         Effect.gen(function* () {
           yield* requireConnected(connectedRef);
+          const page = yield* Ref.get(pageRef);
           yield* requireNavigated(page);
           return yield* wrapPuppeteer("getContent", () => extractPageContent(page, selector));
         }),
@@ -116,6 +168,7 @@ export const LightpandaClientLive = Layer.scoped(
       getHtml: (selector?: string) =>
         Effect.gen(function* () {
           yield* requireConnected(connectedRef);
+          const page = yield* Ref.get(pageRef);
           yield* requireNavigated(page);
           return yield* wrapPuppeteer("getHtml", async () => {
             const html = await page.evaluate((sel) => {
@@ -129,6 +182,7 @@ export const LightpandaClientLive = Layer.scoped(
       waitForSelector: (selector: string, timeout?: number) =>
         Effect.gen(function* () {
           yield* requireConnected(connectedRef);
+          const page = yield* Ref.get(pageRef);
           yield* requireNavigated(page);
           yield* wrapPuppeteer(`waitForSelector selector=${selector}`, async () => {
             await page.waitForSelector(selector, { timeout: timeout ?? 5000 });
@@ -138,6 +192,7 @@ export const LightpandaClientLive = Layer.scoped(
       click: (selector: string) =>
         Effect.gen(function* () {
           yield* requireConnected(connectedRef);
+          const page = yield* Ref.get(pageRef);
           yield* requireNavigated(page);
           yield* wrapPuppeteer(`click selector=${selector}`, async () => {
             await page.click(selector);
@@ -147,6 +202,7 @@ export const LightpandaClientLive = Layer.scoped(
       fill: (selector: string, value: string) =>
         Effect.gen(function* () {
           yield* requireConnected(connectedRef);
+          const page = yield* Ref.get(pageRef);
           yield* requireNavigated(page);
           yield* wrapPuppeteer(`fill selector=${selector}`, async () => {
             await page.click(selector, { clickCount: 3 });
@@ -160,6 +216,7 @@ export const LightpandaClientLive = Layer.scoped(
       > =>
         Effect.gen(function* () {
           yield* requireConnected(connectedRef);
+          const page = yield* Ref.get(pageRef);
           yield* requireNavigated(page);
           // Page.captureScreenshot is not implemented in Lightpanda.
           // See: https://github.com/lightpanda-io/browser/issues/492
@@ -174,6 +231,7 @@ export const LightpandaClientLive = Layer.scoped(
       evaluate: (expression: string) =>
         Effect.gen(function* () {
           yield* requireConnected(connectedRef);
+          const page = yield* Ref.get(pageRef);
           yield* requireNavigated(page);
           return yield* Effect.tryPromise({
             try: async () => {
