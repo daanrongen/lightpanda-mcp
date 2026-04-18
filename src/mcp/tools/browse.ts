@@ -66,6 +66,33 @@ export const registerBrowseTools = (
   );
 
   server.tool(
+    "get_html",
+    "Get the raw HTML of the current page or a specific element. Use this to discover CSS selectors before calling click or fill.",
+    {
+      selector: z
+        .string()
+        .optional()
+        .describe("CSS selector of the element to retrieve (default: body)"),
+    },
+    {
+      title: "Get HTML",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    async ({ selector }) =>
+      runTool(
+        runtime,
+        Effect.gen(function* () {
+          const client = yield* LightpandaClient;
+          return yield* client.getHtml(selector);
+        }),
+        formatSuccess,
+      ),
+  );
+
+  server.tool(
     "click",
     "Click an element on the current page by CSS selector.",
     {
