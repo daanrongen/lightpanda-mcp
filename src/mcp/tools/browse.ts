@@ -4,7 +4,7 @@ import { Effect } from "effect";
 import { z } from "zod";
 import type { LightpandaError } from "../../domain/errors.ts";
 import { LightpandaClient } from "../../domain/LightpandaClient.ts";
-import { formatSuccess, runTool } from "../utils.ts";
+import { formatImage, formatSuccess, runTool } from "../utils.ts";
 
 export const registerBrowseTools = (
   server: McpServer,
@@ -132,7 +132,7 @@ export const registerBrowseTools = (
           const client = yield* LightpandaClient;
           return yield* client.screenshot();
         }),
-        (base64) => formatSuccess({ base64, mimeType: "image/png" }),
+        (base64) => formatImage(base64, "image/png"),
       ),
   );
 
